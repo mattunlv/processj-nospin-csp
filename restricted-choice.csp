@@ -1,0 +1,107 @@
+include "alt.csp"
+include "alt-spec.csp"
+include "scheduler.csp"
+
+-- Set of ProcessJ processes.
+Processes = { 0..2 }
+
+-- Define actual processes
+NULL = -1
+W0 = 0
+W1 = 1
+R = 2
+
+-- Set of ProcessJ channels
+Channels = { 0..1 }
+
+-- Set of nullable ProcessJ processes
+Nullable_Processes = union({ NULL }, Processes)
+
+-- Data values. 0 and 1 are distinct different values.
+Values = { 0, 1 }
+
+-- VARIABLES
+CHANNELS = ||| c : Channels @ CHANNEL(c)
+
+alphaCHANNELS = Union({alphaCHANNEL(c) | c <- Channels})
+
+-- PROTECTED WRITING PROCESS
+
+RESTRICTED_PROCESS_WRITER(pid, chan) = 
+    schedule!pid ->
+    run.pid ->
+    running.pid.set!true ->
+    RESTRICTED_PROCESS_WRITER'(pid, chan)
+
+RESTRICTED_PROCESS_WRITER'(pid, chan) =
+    write.chan.pid?message ->
+    channel_claim.chan!pid ->
+    WRITE(pid, chan, message);
+    channel_release.chan.pid ->
+    YIELD(pid);
+    ack.chan.pid ->
+    RESTRICTED_PROCESS_WRITER'(pid, chan)
+
+RESTRICTED_PROCESS_SELECTOR(pid) =
+    schedule!pid ->
+    run.pid ->
+    running.pid.set!true ->
+    RESTRICTED_PROCESS_SELECTOR'(pid)
+
+RESTRICTED_PROCESS_SELECTOR'(pid) =
+    ready.pid.set!false ->
+    select.pid ->
+    ENABLE(pid);
+    YIELD(pid);
+    DISABLE(pid);
+    selected.get?idx ->
+    start_read.idx.pid ->
+    channel_claim.idx.pid ->
+    READ(pid, idx);
+    selected.get?idx ->
+    data.idx.get?message ->
+    channel_release.idx!pid ->
+    read.idx.pid!message ->
+    RESTRICTED_PROCESS_SELECTOR'(pid)
+
+RESTRICTED_SELECTOR_WRITERS(writer0, writer1, selector, chan0, chan1) = 
+(
+    (CHANNELS ||| ALT_VARIABLES)
+    [| union(alphaCHANNELS, alphaALT_VARIABLES) |]
+    (
+        RESTRICTED_PROCESS_WRITER(writer0, chan0) 
+        ||| RESTRICTED_PROCESS_WRITER(writer1, chan1) 
+        ||| RESTRICTED_PROCESS_SELECTOR(R)
+    )
+) \ union(alphaCHANNELS, alphaALT_VARIABLES)
+
+RESTRICTED_PJ_ALT_SYSTEM(writer0, writer1, selector, chan0, chan1, N) = 
+(
+    RESTRICTED_SELECTOR_WRITERS(writer0, writer1, selector, chan0, chan1)
+    [| alphaN_SCHEDULER_SYSTEM |]
+    N_SCHEDULER_SYSTEM(N)
+) \ alphaN_SCHEDULER_SYSTEM
+
+assert RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 1) :[divergence free[FD]]
+assert RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 2) :[divergence free[FD]]
+assert RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 3) :[divergence free[FD]]
+assert RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 4) :[divergence free[FD]]
+-- this fails as some point environment can choose which writer notifies
+assert not RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 1) :[deterministic[FD]]
+assert not RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 2) :[deterministic[FD]]
+assert not RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 3) :[deterministic[FD]]
+assert not RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 4) :[deterministic[FD]]
+-- Deadlock checks
+assert RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 1) :[deadlock free[FD]]
+assert RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 2) :[deadlock free[FD]]
+assert RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 3) :[deadlock free[FD]]
+assert RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 4) :[deadlock free[FD]]
+-- Refinement checks
+assert ALT_SPEC_SYSTEM(R) [T= RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 1)
+assert ALT_SPEC_SYSTEM(R) [T= RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 2)
+assert ALT_SPEC_SYSTEM(R) [FD= RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 3)
+assert ALT_SPEC_SYSTEM(R) [FD= RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 4)
+assert not RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 1) [T= ALT_SPEC_SYSTEM(R)
+assert not RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 2) [T= ALT_SPEC_SYSTEM(R)
+assert RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 3) [FD= ALT_SPEC_SYSTEM(R)
+assert RESTRICTED_PJ_ALT_SYSTEM(W0, W1, R, 0, 1, 4) [FD= ALT_SPEC_SYSTEM(R)
