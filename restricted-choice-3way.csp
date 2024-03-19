@@ -86,20 +86,15 @@ RESTRICTED_PJ_ALT_SYSTEM(writing_procs, selector, chans, N) = wbisim(
 ) \ alphaN_SCHEDULER_SYSTEM)
 
 -- Refinement checks
---assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 1)
---assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 2)
---assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 3)
---assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 4)
+assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 1)
+assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 2)
+assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 3)
+assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 4)
 
---assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 1) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
---assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 2) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
---assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 3) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
---assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 4) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
-
-
-
-
-
+assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 1) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
+assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 2) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
+assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 3) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
+assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 4) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
 
 assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 1) :[divergence free[FD]]
 assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 2) :[divergence free[FD]]
