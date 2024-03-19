@@ -19,16 +19,14 @@ alphaREADY = Union({alphaVARIABLE(ready.p, Bool) | p <- Processes})
 alphaRUNNING = Union({alphaVARIABLE(running.p, Bool) |p <- Processes})
 
 -- A single process
-PROCESS :: (Int) -> Proc
+PROCESS :: (Nullable_Processes) -> Proc
 PROCESS(p) = 
     VARIABLE(ready.p, true)
-    |||
-    VARIABLE(running.p, false)
-    |||
-    MONITOR(claim_process.p, release_process.p)
+    ||| VARIABLE(running.p, false)
+    ||| MONITOR(claim_process.p, release_process.p)
 
 -- Alphabet of a single process
-alphaPROCESS :: (Int) -> {Event}
+alphaPROCESS :: (Nullable_Processes) -> {Event}
 alphaPROCESS(p) = Union({
     alphaVARIABLE(ready.p, Bool),
     alphaVARIABLE(running.p, Bool),
@@ -42,29 +40,26 @@ PROCESSES = ||| p : Processes @ PROCESS(p)
 alphaPROCESSES = Union({alphaPROCESS(p) | p <- Processes})
 
 -- channel for operations on the queue
-channel rqpush, rqpop, run, yield : Processes
+channel rqenqueue, rqdequeue, run, yield : Processes
 
 -- Scheduler process
 -- It ensures only one process is runnning by accepting the run event for a process,
 -- then not accepting another until the equivalent yield occurs.  It can during 
 -- The process allowed to run is the one retrieved from the queue.
 SCHEDULER =
-    rqpop?p ->
+    rqdequeue?p ->
     run.p -> 
     yield.p ->
     SCHEDULER
 
-alphaRUNQUEUE = alphaQUEUE(rqpush, rqpop, card(Processes), Processes)
+alphaRUNQUEUE = alphaQUEUE(rqenqueue, rqdequeue, Processes)
 
 alphaSCHEDULER = 
-    union(
-        alphaRUNQUEUE,
-        {
-            run.p,
-            yield.p
-            | p <- Processes
-        }
-    )
+{
+    run.p,
+    yield.p
+    | p <- Processes
+}
 
 -- Channel to accept schedule events from other processes
 channel schedule : Processes
@@ -74,10 +69,10 @@ channel schedule : Processes
 -- its schedule event.
 SCHEDULE_MANAGER =
     schedule?pid ->
-    rqpush!pid ->
+    rqenqueue!pid ->
     SCHEDULE_MANAGER
 
-alphaSCHEDULE_MANAGER = {|schedule, rqpush|}
+alphaSCHEDULE_MANAGER = {|schedule |}
 
 alphaSCHEDULING = union(alphaSCHEDULER, alphaSCHEDULE_MANAGER)
 
@@ -87,14 +82,14 @@ alphaSCHEDULING = union(alphaSCHEDULER, alphaSCHEDULE_MANAGER)
 N_SCHEDULER_SYSTEM :: (Int) -> Proc
 N_SCHEDULER_SYSTEM(N) = 
 (
-    (
-        QUEUE(rqpush, rqpop, <>, card(Processes)) 
+    wbisim ((
+        QUEUE(rqenqueue, rqdequeue, <>, card(Processes)) 
         [| alphaRUNQUEUE |] 
         ((||| n : {1..N} @ SCHEDULER) ||| SCHEDULE_MANAGER)
-    )
+    ) \alphaRUNQUEUE)
     [alphaSCHEDULING || alphaPROCESSES]
     PROCESSES
-) \alphaRUNQUEUE
+) 
 
 -- Alphabet of the scheduler system
 alphaN_SCHEDULER_SYSTEM = 
@@ -121,7 +116,7 @@ DESCHEDULE(pid) =
         release_process.pid.pid ->
         SKIP
 
-SCHEDULE :: (Int, Int) -> Proc
+SCHEDULE :: (Nullable_Processes, Nullable_Processes) -> Proc
 SCHEDULE(me, pid) =
     claim_process.pid.me ->
     ready.pid.get?r ->
@@ -143,16 +138,12 @@ YIELD(pid) =
     DESCHEDULE(pid);
     (
         yield.pid -> 
-
--- why can't I swap these two around ????
-
         run.pid -> 
         running.pid.set!true ->
-
-	SKIP
+	    SKIP
     )
 
-alphaYIELD :: (Int) -> {Event}
+alphaYIELD :: (Nullable_Processes) -> {Event}
 alphaYIELD(pid) =
 {
     claim_process.pid.pid,

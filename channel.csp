@@ -16,11 +16,11 @@ channel channel_claim, channel_release : Channels.Processes
 
 -- Generic ProcessJ channel specification
 -- Requires the channel number
-CHANNEL :: (Int) -> Proc
+CHANNEL :: (Channels) -> Proc
 CHANNEL(chan) =
     VARIABLE(writer.chan, NULL) 
     ||| VARIABLE(reader.chan, NULL) 
-    ||| VARIABLE(data.chan, 0)
+    ||| VARIABLE(data.chan, A)
     ||| MONITOR(channel_claim.chan, channel_release.chan)
 
 alphaCHANNEL(chan) =
@@ -41,8 +41,7 @@ WRITE(pid, chan, item) =
     ready.pid.set!false ->
     reader.chan.get?v ->
     if (v != NULL) then
-        SCHEDULE(pid, v); 
-        SKIP
+        SCHEDULE(pid, v)
     else
         SKIP
 
@@ -63,7 +62,7 @@ alphaWRITE(pid, chan) =
 -- TODO: HAVE UPDATED READ TO TAKE PID - REQUIRED FOR SCHEDULE
 READ(pid, chan) = 
     writer.chan.get?w ->        -- (1) get the 'writer' field.
-    if (w == NULL) then STOP
+    if (w == NULL) then DIV
     else
         SCHEDULE(pid, w);
         (
@@ -75,8 +74,8 @@ READ(pid, chan) =
 alphaREAD(pid, chan) =
 {
     writer.chan.get.np,
-    writer.chan.set.-1, 
-    reader.chan.set.-1, 
+    writer.chan.set.NULL, 
+    reader.chan.set.NULL, 
     ready.p.set.true,
     ready.p.get.b,
     running.p.get.b,

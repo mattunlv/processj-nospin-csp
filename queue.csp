@@ -1,23 +1,15 @@
 QUEUE :: (Complete a, Set a) => (a=>Event, a=>Event, <a>, Int) -> Proc
-QUEUE(push, pop, q, CAP) =
+QUEUE(enqueue, dequeue, q, CAP) =
 (
-    if (length(q) >= CAP) then STOP
-    else
-        push?v ->
-        QUEUE(push, pop, concat(<q, <v>>), CAP)
-)
-[]
-(
-    if (length(q) == 0) then STOP
-    else
-        pop!head(q) ->
-        QUEUE(push, pop, tail(q), CAP)
+    length(q) < CAP & enqueue?v -> QUEUE(enqueue, dequeue, q^<v>, CAP)
+    []
+    length(q) > 0 & dequeue!head(q) -> QUEUE(enqueue, dequeue, tail(q), CAP)
 )
 
-alphaQUEUE :: (Complete a, Set a) => (a=>Event, a=>Event, Int, {a}) -> {Event}
-alphaQUEUE(push, pop, CAP, T) =
+alphaQUEUE :: (Complete a, Set a) => (a=>Event, a=>Event, {a}) -> {Event}
+alphaQUEUE(enqueue, dequeue, T) =
 {
-    push.v,
-    pop.v
+    enqueue.v,
+    dequeue.v
     | v <- T
 } 

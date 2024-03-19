@@ -4,78 +4,83 @@ include "channel.csp"
 -- As only one PJAlt exists we do not require a further indentifier.
 channel i, selected : Operations.Channels
 
-ALT_VARIABLES = VARIABLE(i, 0) ||| VARIABLE(selected, 0)
+ALT_VARIABLES = 
+    VARIABLE(selected, NONE)
+    ||| VARIABLE(i, NONE)
 
 alphaALT_VARIABLES = 
 {
-    i.o.c,
-    selected.o.c
+    selected.o.c,
+    i.o.c
     | o <- Operations, c <- Channels
 }
 
 -- ALT
+ENABLE_LOOP(pid, <>) = 
+    i.set!NONE ->
+    SKIP
 
-ENABLE_LOOP(pid) = 
-    i.get?idx ->
-    channel_claim.idx.pid ->
-    writer.idx.get?w ->
+ENABLE_LOOP(pid, <next>^guards) = 
+    channel_claim.next.pid ->
+    writer.next.get?w ->
     if (w != NULL) then
-        channel_release.idx!pid ->
+        i.set!next ->
+        channel_release.next!pid ->
         ready.pid.set!true ->
         SKIP
     else
-        reader.idx.set!pid ->
-        channel_release.idx!pid ->
-        if (idx < card(Channels) - 1) then
-            i.set!(idx + 1) ->
-            ENABLE_LOOP(pid)
-        else
-            SKIP
+        reader.next.set!pid ->
+        channel_release.next!pid ->
+        ENABLE_LOOP(pid, guards)
 
-ENABLE(pid) = 
-    i.set!0 ->
-    ENABLE_LOOP(pid)
+ENABLE(pid) =
+    ENABLE_LOOP(pid, seq(Active_Channels))
 
 alphaENABLE(pid) = 
 {
-    i.op.c,
     writer.c.get.np,
     ready.pid.set.true,
     reader.c.set.pid,
     channel_claim.c.pid,
     channel_release.c.pid
-    | op <- Operations, c <- Channels, np <- Nullable_Processes
+    | c <- Active_Channels, np <- Nullable_Processes
 }
 
-DISABLE_LOOP(pid) =
-    i.get?idx ->
-    channel_claim.idx.pid ->
-    writer.idx.get?w ->
-    reader.idx.set!NULL ->
-    channel_release.idx!pid ->
+DISABLE_LOOP(pid, <>) = SKIP
+
+DISABLE_LOOP(pid, <next>^procs) =
+    channel_claim.next.pid ->
+    writer.next.get?w ->
+    reader.next.set!NULL ->
+    channel_release.next!pid ->
     (
         if (w != NULL) then
-            selected.set!idx ->
+            selected.set!next ->
             SKIP
         else
             SKIP
     );
-    i.get?idx ->
-    if (idx > 0) then
-        i.set!(idx - 1) ->
-        DISABLE_LOOP(pid)
-    else
-        SKIP
+    DISABLE_LOOP(pid, procs)
 
-DISABLE(pid) = DISABLE_LOOP(pid)
+reverse :: (Set a) => (<a>) -> <a>
+reverse(<>) = <>
+reverse(<x>^xs) = reverse(xs)^<x>
+
+build_disable_list(<>, y) = <>
+build_disable_list(<x>^xs, y) =
+    if x != y then <x>^build_disable_list(xs, y)
+    else <x>
+
+DISABLE(pid) =
+    i.get?end ->
+    DISABLE_LOOP(pid, reverse(build_disable_list(seq(Active_Channels), end)))
 
 alphaDISABLE(pid) =
 {
-    i.op.c,
     writer.c.get.np,
     reader.c.set.NULL,
     selected.set.c,
     channel_claim.c.pid,
     channel_release.c.pid
-    | op <- Operations, c <- Channels, np <- Nullable_Processes
+    | c <- Active_Channels, np <- Nullable_Processes
 }
