@@ -44,26 +44,26 @@ RESTRICTED_PROCESS_READER(pid, chan) =
 
 RESTRICTED_PROCESS_READER'(pid, chan) = 
     start_read.chan.pid ->
-    channel_claim.chan!pid ->                -- 'synchronized' of isReadyToRead() (claim the monitor)
+    channel_claim.chan!pid ->                    -- 'synchronized' of isReadyToRead() (claim the monitor)
     writer.chan.get?p ->
     (
-        if (p == NULL) then               -- writer != null                         
-            reader.chan.set.pid ->         -- reader = this;            [done in isReadyToRead()]
+        if (p == NULL) then                      -- writer != null                         
+            reader.chan.set.pid ->               -- reader = this;            [done in isReadyToRead()]
             ready.pid.set!false ->
-            channel_release.chan.pid ->           -- release the monitor
+            channel_release.chan.pid ->          -- release the monitor
             YIELD(pid);
             SKIP
         else
-            channel_release.chan.pid ->           -- release the monitor
+            channel_release.chan.pid ->          -- release the monitor
             SKIP
     );
-    channel_claim.chan!pid ->             -- 'synchronized' of read() (claim the monitor)
-    READ(pid, chan);              -- c.read();
-    data.chan.get?message ->      -- (4) T myData = data;    [lifted out of read()]
-    channel_release.chan.pid ->           -- release the monitor
+    channel_claim.chan!pid ->                    -- 'synchronized' of read() (claim the monitor)
+    READ(pid, chan);                             -- c.read();
+    data.chan.get?message ->                     -- T myData = data;    [lifted out of read()]
+    channel_release.chan.pid ->                  -- release the monitor
     (
-        YIELD(pid);                   -- yield()
-        read.chan.pid!message ->            -- (6) deliver the message to the environment
+        YIELD(pid);                              -- yield()
+        read.chan.pid!message ->                 -- deliver the message to the environment
         RESTRICTED_PROCESS_READER'(pid, chan)    -- Recurse to start over (simulate jump to L2)
     )
 
@@ -97,7 +97,6 @@ assert RESTRICTED_PJ_CHAN_SYSTEM(P1, P2, C1, 4) :[divergence free[FD]]
 assert RESTRICTED_PJ_CHAN_SYSTEM(P1, P2, C1, 4) :[deterministic[FD]]
 
 assert GENERIC_CHANNEL(P1, P2, C1) :[divergence free[FD]]
-
 
 -- Test to see still refines in trace model with protection and single scheduler.
 assert GENERIC_CHANNEL(P1, P2, C1) [T= RESTRICTED_PJ_CHAN_SYSTEM(P1, P2, C1, 1)
