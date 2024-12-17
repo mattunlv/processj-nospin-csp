@@ -5,31 +5,25 @@ include "channel-spec.csp"
 channel select : Processes
 channel return : Channels
 
-OFFER_WRITERS(selector, chans, writing_procs, flags, waiting) = 
-    [] (c, p) : set(zip(chans, writing_procs)) @ (write.c.p?mess -> ALT_SPEC(selector, chans, writing_procs, mapUpdate(flags, c, true), waiting))
+OFFER_WRITERS(selector, <>, <>, all_chans, all_writers, flags, waiting) = STOP
+OFFER_WRITERS(selector, <c>^chans, <p>^writing_procs, all_chans, all_writers, flags, waiting) =
+    write.c.p?mess -> ALT_SPEC(selector, all_chans, all_writers, mapUpdate(flags, c, true), waiting)
+    [] 
+    OFFER_WRITERS(selector, chans, writing_procs, all_chans, all_writers, flags, waiting)
 
--- OFFER_WRITERS(selector, <>, <>, all_chans, all_writers, flags, waiting) = STOP
--- OFFER_WRITERS(selector, <c>^chans, <p>^writing_procs, all_chans, all_writers, flags, waiting) =
---     write.c.p?mess -> ALT_SPEC(selector, all_chans, all_writers, mapUpdate(flags, c, true), waiting)
---     [] 
---     OFFER_WRITERS(selector, chans, writing_procs, all_chans, all_writers, flags, waiting)
-
-OFFER_READY(selector, chans, writing_procs, flags, waiting) =
-    [] (c, p) : set(zip(chans, writing_procs)) @ (mapLookup(flags, c) & return!c -> ALT_SPEC(selector, chans, writing_procs, mapUpdate(flags, c, false), false))
-
--- OFFER_READY(selector, <>, writing_procs, all_chans, flags, waiting) = STOP
--- OFFER_READY(selector, <c>^chans, writing_procs, all_chans, flags, waiting) =
---     mapLookup(flags, c) & return!c ->
---       ALT_SPEC(selector, all_chans, writing_procs, mapUpdate(flags, c, false), false)
---     []
---     OFFER_READY(selector, chans, writing_procs, all_chans, flags, waiting)
-
+OFFER_READY(selector, <>, writing_procs, all_chans, flags, waiting) = STOP
+OFFER_READY(selector, <c>^chans, writing_procs, all_chans, flags, waiting) =
+    if (mapLookup(flags, c)) then
+        return!c ->
+        ALT_SPEC(selector, all_chans, writing_procs, mapUpdate(flags, c, false), false)
+    else
+        OFFER_READY(selector, chans, writing_procs, all_chans, flags, waiting)
 
 ALT_SPEC(selector, chans, writing_procs, flags, waiting) =
-    OFFER_WRITERS(selector, chans, writing_procs, flags, waiting)
+    OFFER_WRITERS(selector, chans, writing_procs, chans, writing_procs, flags, waiting)
     []
     if (waiting == true) then
-        OFFER_READY(selector, chans, writing_procs, flags, waiting)
+        OFFER_READY(selector, chans, writing_procs, chans, flags, waiting)
     else
         select.selector ->
         ALT_SPEC(selector, chans, writing_procs, flags, true)
@@ -59,12 +53,9 @@ create_flags(flags, <>) = flags
 create_flags(flags, <c>^chans) =
     mapUpdate(create_flags(flags, chans), c, false)
 
-LEFT_PROCS(writing_procs, chans) =
-    ||| (p, c) : set(zip(writing_procs, chans)) @ LEFT(p, c)
-
--- LEFT_PROCS(<>, <>) = SKIP
--- LEFT_PROCS(<p>^writing_procs, <c>^chans) =
---     LEFT(p, c) ||| LEFT_PROCS(writing_procs, chans)
+LEFT_PROCS(<>, <>) = SKIP
+LEFT_PROCS(<p>^writing_procs, <c>^chans) =
+    LEFT(p, c) ||| LEFT_PROCS(writing_procs, chans)
 
 alphaLEFT_PROCS(<>, <>) = {}
 alphaLEFT_PROCS(<p>^writing_procs, <c>^chans) = union(

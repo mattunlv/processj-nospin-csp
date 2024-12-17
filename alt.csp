@@ -17,19 +17,19 @@ alphaALT_VARIABLES =
 
 -- ALT
 ENABLE_LOOP(pid, <>) = 
-    i.set!NONE ->
+    i.store!NONE ->
     SKIP
 
 ENABLE_LOOP(pid, <next>^guards) = 
     channel_claim.next.pid ->
-    writer.next.get?w ->
+    writer.next.load?w ->
     if (w != NULL) then
-        i.set!next ->
+        i.store!next ->
         channel_release.next!pid ->
-        ready.pid.set!true ->
+        ready.pid.store!true ->
         SKIP
     else
-        reader.next.set!pid ->
+        reader.next.store!pid ->
         channel_release.next!pid ->
         ENABLE_LOOP(pid, guards)
 
@@ -38,9 +38,9 @@ ENABLE(pid) =
 
 alphaENABLE(pid) = 
 {
-    writer.c.get.np,
-    ready.pid.set.true,
-    reader.c.set.pid,
+    writer.c.load.np,
+    ready.pid.store.true,
+    reader.c.store.pid,
     channel_claim.c.pid,
     channel_release.c.pid
     | c <- Active_Channels, np <- Nullable_Processes
@@ -50,12 +50,12 @@ DISABLE_LOOP(pid, <>) = SKIP
 
 DISABLE_LOOP(pid, <next>^procs) =
     channel_claim.next.pid ->
-    writer.next.get?w ->
-    reader.next.set!NULL ->
+    writer.next.load?w ->
+    reader.next.store!NULL ->
     channel_release.next!pid ->
     (
         if (w != NULL) then
-            selected.set!next ->
+            selected.store!next ->
             SKIP
         else
             SKIP
@@ -72,14 +72,14 @@ build_disable_list(<x>^xs, y) =
     else <x>
 
 DISABLE(pid) =
-    i.get?end ->
+    i.load?end ->
     DISABLE_LOOP(pid, reverse(build_disable_list(seq(Active_Channels), end)))
 
 alphaDISABLE(pid) =
 {
-    writer.c.get.np,
-    reader.c.set.NULL,
-    selected.set.c,
+    writer.c.load.np,
+    reader.c.store.NULL,
+    selected.store.c,
     channel_claim.c.pid,
     channel_release.c.pid
     | c <- Active_Channels, np <- Nullable_Processes

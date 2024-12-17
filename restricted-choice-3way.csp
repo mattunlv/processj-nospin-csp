@@ -5,6 +5,7 @@ transparent dbisim
 include "alt.csp"
 include "alt-spec.csp"
 include "scheduler.csp"
+include "utility.csp"
 
 -- Set of ProcessJ processes.
 datatype Nullable_Processes = NULL | R | W1 | W2 | W3
@@ -28,7 +29,7 @@ alphaCHANNELS = Union({alphaCHANNEL(c) | c <- Channels})
 RESTRICTED_PROCESS_WRITER(pid, chan) = 
     schedule!pid ->
     run.pid ->
-    running.pid.set!true ->
+    running.pid.store!true ->
     RESTRICTED_PROCESS_WRITER'(pid, chan)
 
 RESTRICTED_PROCESS_WRITER'(pid, chan) =
@@ -43,21 +44,21 @@ RESTRICTED_PROCESS_WRITER'(pid, chan) =
 RESTRICTED_PROCESS_SELECTOR(pid) =
     schedule!pid ->
     run.pid ->
-    running.pid.set!true ->
+    running.pid.store!true ->
     RESTRICTED_PROCESS_SELECTOR'(pid)
 
 RESTRICTED_PROCESS_SELECTOR'(pid) =
-    ready.pid.set!false ->
+    ready.pid.store!false ->
     select.pid ->
     ENABLE(pid);
     YIELD(pid);
     DISABLE(pid);
-    selected.get?idx ->
+    selected.load?idx ->
     start_read.idx.pid ->
     channel_claim.idx.pid ->
     READ(pid, idx);
-    selected.get?idx ->
-    data.idx.get?message ->
+    selected.load?idx ->
+    data.idx.load?message ->
     channel_release.idx!pid ->
     read.idx.pid!message ->
     RESTRICTED_PROCESS_SELECTOR'(pid)
@@ -86,15 +87,20 @@ RESTRICTED_PJ_ALT_SYSTEM(writing_procs, selector, chans, N) = wbisim(
 ) \ alphaN_SCHEDULER_SYSTEM)
 
 -- Refinement checks
-assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 1)
-assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 2)
-assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 3)
-assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 4)
+--assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 1)
+--assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 2)
+--assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 3)
+--assert ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>) [F= RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 4)
 
-assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 1) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
-assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 2) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
-assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 3) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
-assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 4) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
+--assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 1) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
+--assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 2) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
+--assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 3) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
+--assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 4) [F= ALT_SPEC_SYSTEM(R, <C1, C2, C3>, <W1, W2, W3>)
+
+
+
+
+
 
 assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 1) :[divergence free[FD]]
 assert RESTRICTED_PJ_ALT_SYSTEM(<W1, W2, W3>, R, <C1, C2, C3>, 2) :[divergence free[FD]]

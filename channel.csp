@@ -36,10 +36,10 @@ alphaCHANNEL(chan) =
 -- PROCESSJ CHANNEL METHODS
 
 WRITE(pid, chan, item) = 
-    data.chan.set!item ->         -- (1) data = item;
-    writer.chan.set!pid ->        -- (2) writer = p;
-    ready.pid.set!false ->
-    reader.chan.get?v ->
+    data.chan.store!item ->         -- (1) data = item;
+    writer.chan.store!pid ->        -- (2) writer = p;
+    ready.pid.store!false ->
+    reader.chan.load?v ->
     if (v != NULL) then
         SCHEDULE(pid, v)
     else
@@ -47,12 +47,12 @@ WRITE(pid, chan, item) =
 
 alphaWRITE(pid, chan) = 
 { 
-    data.chan.set.v, 
-    writer.chan.set.pid, 
-    reader.chan.get.np,
-    ready.pid.set.false,
-    ready.p.get.b,
-    running.p.get.b,
+    data.chan.store.v, 
+    writer.chan.store.pid, 
+    reader.chan.load.np,
+    ready.pid.store.false,
+    ready.p.load.b,
+    running.p.load.b,
     claim_process.p.pid,
     release_process.p.pid,
     schedule.p
@@ -61,24 +61,24 @@ alphaWRITE(pid, chan) =
 
 -- TODO: HAVE UPDATED READ TO TAKE PID - REQUIRED FOR SCHEDULE
 READ(pid, chan) = 
-    writer.chan.get?w ->        -- (1) get the 'writer' field.
+    writer.chan.load?w ->        -- (1) get the 'writer' field.
     if (w == NULL) then DIV
     else
         SCHEDULE(pid, w);
         (
-            writer.chan.set!NULL ->       -- moved (2) writer = null;
-            reader.chan.set!NULL ->       -- moved (3) reader = null;
+            writer.chan.store!NULL ->       -- moved (2) writer = null;
+            reader.chan.store!NULL ->       -- moved (3) reader = null;
             SKIP
         )
 
 alphaREAD(pid, chan) =
 {
-    writer.chan.get.np,
-    writer.chan.set.NULL, 
-    reader.chan.set.NULL, 
-    ready.p.set.true,
-    ready.p.get.b,
-    running.p.get.b,
+    writer.chan.load.np,
+    writer.chan.store.NULL, 
+    reader.chan.store.NULL, 
+    ready.p.store.true,
+    ready.p.load.b,
+    running.p.load.b,
     claim_process.p.pid,
     release_process.p.pid,
     schedule.p

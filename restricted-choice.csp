@@ -2,8 +2,9 @@ transparent sbisim
 transparent wbisim
 transparent dbisim
 
+include "utility.csp"
 include "alt.csp"
-include "alt-spec.csp"
+include "pri-alt-spec.csp"
 include "scheduler.csp"
 
 -- Set of ProcessJ processes.
@@ -28,7 +29,7 @@ alphaCHANNELS = Union({alphaCHANNEL(c) | c <- Channels})
 RESTRICTED_PROCESS_WRITER(pid, chan) = 
     schedule!pid ->
     run.pid ->
-    running.pid.set!true ->
+    running.pid.store!true ->
     RESTRICTED_PROCESS_WRITER'(pid, chan)
 
 RESTRICTED_PROCESS_WRITER'(pid, chan) =
@@ -43,21 +44,21 @@ RESTRICTED_PROCESS_WRITER'(pid, chan) =
 RESTRICTED_PROCESS_SELECTOR(pid) =
     schedule!pid ->
     run.pid ->
-    running.pid.set!true ->
+    running.pid.store!true ->
     RESTRICTED_PROCESS_SELECTOR'(pid)
 
 RESTRICTED_PROCESS_SELECTOR'(pid) =
-    ready.pid.set!false ->
+    ready.pid.store!false ->
     select.pid ->
     ENABLE(pid);
     YIELD(pid);
     DISABLE(pid);
-    selected.get?c ->
+    selected.load?c ->
     (
         start_read.c.pid ->
         channel_claim.c.pid ->
         READ(pid, c);
-        data.c.get?message ->
+        data.c.load?message ->
         channel_release.c!pid ->
         read.c.pid!message ->
         RESTRICTED_PROCESS_SELECTOR'(pid)
@@ -68,9 +69,12 @@ ALT_NETWORK(writing_procs, selector, chans) =
     (RESTRICTED_PROCESS_SELECTOR(selector) ||| PROCESS_WRITER_NETWORK(writing_procs, chans))
 
 PROCESS_WRITER_NETWORK :: (<Nullable_Processes>, <Channels>) -> Proc
-PROCESS_WRITER_NETWORK(<>, <>) = SKIP
-PROCESS_WRITER_NETWORK(<proc>^writing_procs, <chan>^chans) =
-    (RESTRICTED_PROCESS_WRITER(proc, chan) ||| PROCESS_WRITER_NETWORK(writing_procs, chans))
+PROCESS_WRITER_NETWORK(writing_procs, chans) =
+    ||| (p, c) : set(zip(writing_procs, chans)) @ RESTRICTED_PROCESS_WRITER(p, c)
+    
+-- PROCESS_WRITER_NETWORK(<>, <>) = SKIP
+-- PROCESS_WRITER_NETWORK(<proc>^writing_procs, <chan>^chans) =
+--     (RESTRICTED_PROCESS_WRITER(proc, chan) ||| PROCESS_WRITER_NETWORK(writing_procs, chans))
 
 RESTRICTED_SELECTOR_WRITERS(writing_procs, selector, chans) = wbisim(
 (

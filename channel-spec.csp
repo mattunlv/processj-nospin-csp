@@ -47,29 +47,4 @@ GENERIC_CHANNEL(writing_proc, reading_proc, chan) =
 alphaGENERIC_CHANNEL(writing_proc, reading_proc, chan) = 
     diff(union(alphaLEFT(writing_proc, chan), alphaRIGHT(reading_proc, chan)), PRIVATE_CHANNEL_SPEC(chan))
 
--- N_TO_ONE_GENERIC_CHANNEL(N, chan) =
--- (
---     (||| p : {1..N} @ LEFT(p, chan)) 
---     [|{|transmit|}|]
---     RIGHT(0, chan)
--- ) \ PRIVATE_CHANNEL_SPEC(chan)
-
--- ONE_TO_N_GENERIC_CHANNEL(N, chan) =
--- (
---     LEFT(0, chan)
---     [|{|transmit|}|]
---     (||| p : {1..N} @ RIGHT(p, chan))
--- ) \ PRIVATE_CHANNEL_SPEC(chan)
-
--- N_TO_M_GENERIC_CHANNEL(N, M, chan) =
--- (
---     (||| p : {0..N-1} @ LEFT(p, chan))
---     [|{|transmit|}|]
---     (||| p : {N..N+M-1} @ RIGHT(p, chan))
--- ) \ PRIVATE_CHANNEL_SPEC(chan)
-
---assert N_TO_ONE_GENERIC_CHANNEL(2, 0) :[deadlock free[FD]]
---assert ONE_TO_N_GENERIC_CHANNEL(2, 0) :[deadlock free[FD]]
---assert N_TO_M_GENERIC_CHANNEL(2, 2, 0) :[deadlock free[FD]]
-
 -- END OF MODEL SPECIFICATION
